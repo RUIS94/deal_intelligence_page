@@ -503,7 +503,7 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
         <CardHeader className="p-0">
           <div className="flex items-center justify-between gap-3">
             <CardTitle className="flex items-center gap-3">
-              <span>Deal Progress Overview</span>
+              <span>Deals Overview</span>
               <span className="text-sm text-muted-foreground flex items-center gap-1">
                 <Clock className="h-4 w-4" />
                 {period}
