@@ -82,7 +82,7 @@ const ForecastDashboard = () => {
         {/* Forecast Accuracy Components - Only keep three tabs */}
         <Card className="bg-white border-0 shadow-none">
           <CardContent>
-            <DealProgressTracker period="Q1 2025" team="all" searchQuery="" />
+            <DealProgressTracker team="all" searchQuery="" />
             {/* <Tabs defaultValue="deal-progress" className="w-full">
               <TabsList className="w-fit rounded-lg bg-muted p-1">
                 <TabsTrigger value="deal-progress" className="rounded-lg px-4 py-2 text-muted-foreground shadow-none data-[state=active]:!text-primary data-[state=active]:bg-white data-[state=active]:shadow-none">Deal Progress</TabsTrigger>
