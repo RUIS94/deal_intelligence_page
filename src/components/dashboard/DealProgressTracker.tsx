@@ -683,7 +683,7 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                                       {needsReachout(s) && (
                                         <span className="inline-flex items-center gap-1 text-xs text-red-600">
                                           <AlertTriangle className="h-3 w-3 text-red-500" />
-                                          Reach out
+                                          Reach out immediately
                                         </span>
                                       )}
                                     </div>
