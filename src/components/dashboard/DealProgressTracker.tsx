@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { 
   Dialog,
   DialogContent,
@@ -46,7 +47,12 @@ import {
   Pencil,
   FileText,
   Filter,
-  MoreVertical
+  MoreVertical,
+  Search,
+  Check,
+  Tag,
+  ThumbsUp,
+  ThumbsDown
 } from 'lucide-react';
 import OrgChartMapping from './OrgChartMapping';
 import DealProgressDetails from './DealProgressDetails';
@@ -62,6 +68,8 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
 
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
   const toggleExpanded = (id: number) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+
+  const [activeSort, setActiveSort] = useState<string>('');
 
   // Dialog state for stakeholder details
   const [stakeholderDialogOpen, setStakeholderDialogOpen] = useState(false);
@@ -79,6 +87,7 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
     notes?: string;
     interactions?: number;
     avatar?: string;
+    company?: string;
   } | null>(null);
 
   // Deal details popup (Org Chart + placeholders)
@@ -430,6 +439,21 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
         return { bg: 'bg-muted/10', text: 'text-muted-foreground' };
     }
   };
+  const getEngagementIcon = (lvl?: 'low' | 'medium' | 'high') => {
+    const label = lvl === 'high' ? 'High Engagement' : lvl === 'medium' ? 'Medium Engagement' : 'Low Engagement';
+    const color = lvl === 'high' ? 'text-emerald-600' : lvl === 'medium' ? 'text-amber-600' : 'text-red-600';
+    const Icon = lvl === 'low' ? ThumbsDown : ThumbsUp;
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Icon className={`h-4 w-4 ${color}`} />
+        </TooltipTrigger>
+        <TooltipContent className="bg-white">
+          {label}
+        </TooltipContent>
+      </Tooltip>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -469,7 +493,7 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Avg Progress</p>
+                <p className="text-sm font-medium text-muted-foreground">Avg Win Rate</p>
                 <p className="text-2xl font-bold text-foreground">
                   {Math.round(deals.reduce((sum, deal) => sum + deal.progress, 0) / deals.length)}%
                 </p>
@@ -518,26 +542,105 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-white border-primary text-primary"
+                className="bg-white border-primary text-primary h-9 w-28 justify-center gap-2"
               >
+                <Search className="h-4 w-4" />
                 Search
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-white text-[#FF8E1C] border border-[#FF8E1C]"
-              >
-                <Filter className="h-4 w-4 mr-2" />
-                Filter
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-white text-muted-foreground"
-              >
-                <SlidersHorizontal className="h-4 w-4 mr-2" />
-                Sort
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-white text-[#FF8E1C] border border-[#FF8E1C] h-9 w-28 justify-center gap-2"
+                  >
+                    <Filter className="h-4 w-4" />
+                    Filter
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64 bg-white">
+                  <div className="p-2 space-y-3">
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Type</span>
+                      <select className="w-full h-8 border border-border rounded-md px-2 text-sm bg-white">
+                        <option>All</option>
+                        <option>New Business</option>
+                        <option>Renewal</option>
+                        <option>Expansion</option>
+                        <option>Cross-sell</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Stage</span>
+                      <select className="w-full h-8 border border-border rounded-md px-2 text-sm bg-white">
+                        <option>All</option>
+                        <option>Prospecting</option>
+                        <option>Discovery</option>
+                        <option>Qualified</option>
+                        <option>Proposal</option>
+                        <option>Negotiation</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Risk</span>
+                      <select className="w-full h-8 border border-border rounded-md px-2 text-sm bg-white">
+                        <option>All</option>
+                        <option>low</option>
+                        <option>medium</option>
+                        <option>high</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Owner</span>
+                      <select className="w-full h-8 border border-border rounded-md px-2 text-sm bg-white">
+                        <option>All</option>
+                        <option>Sarah Johnson</option>
+                        <option>Michael Chen</option>
+                        <option>Emily Rodriguez</option>
+                        <option>David Kim</option>
+                        <option>Olivia Park</option>
+                        <option>Noah Lee</option>
+                      </select>
+                    </div>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-white text-muted-foreground h-9 w-28 justify-center gap-2"
+                  >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    {activeSort ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="truncate max-w-[5.5rem]">{`Sort: ${activeSort}`}</span>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-white">{activeSort}</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <span className="truncate max-w-[5.5rem]">Sort</span>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-white">
+                  <DropdownMenuItem onClick={() => setActiveSort('')}>{activeSort === '' && <Check className="h-4 w-4 mr-2" />}Clear sort</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setActiveSort('Value ↓')}>{activeSort === 'Value ↓' && <Check className="h-4 w-4 mr-2" />}Value ↓</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveSort('Value ↑')}>{activeSort === 'Value ↑' && <Check className="h-4 w-4 mr-2" />}Value ↑</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setActiveSort('Progress ↓')}>{activeSort === 'Progress ↓' && <Check className="h-4 w-4 mr-2" />}Progress ↓</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveSort('Progress ↑')}>{activeSort === 'Progress ↑' && <Check className="h-4 w-4 mr-2" />}Progress ↑</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setActiveSort('Close Date ⭢ Soonest')}>{activeSort === 'Close Date ⭢ Soonest' && <Check className="h-4 w-4 mr-2" />}Close Date ⭢ Soonest</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveSort('Last Activity ⭢ Recent')}>{activeSort === 'Last Activity ⭢ Recent' && <Check className="h-4 w-4 mr-2" />}Last Activity ⭢ Recent</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setActiveSort('Risk ⭢ High First')}>{activeSort === 'Risk ⭢ High First' && <Check className="h-4 w-4 mr-2" />}Risk ⭢ High First</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveSort('Owner ⭢ A–Z')}>{activeSort === 'Owner ⭢ A–Z' && <Check className="h-4 w-4 mr-2" />}Owner ⭢ A–Z</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </CardHeader>
@@ -546,15 +649,15 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
             {deals.map((deal) => (
               <div 
                 key={deal.id}
-                className={`rounded-lg p-4 transition-all duration-200 border ${dealNeedsImmediateAttention(deal) ? 'border-red-300' : 'border-border'}`}
+                className={`rounded-lg p-4 transition-all duration-200 border border-border`}
+                onClick={(e) => { const t = e.target as HTMLElement; if (!expanded[deal.id] && !t.closest('button,a,input,select,textarea,[role="button"]')) toggleExpanded(deal.id); }}
               >
                 {/* Deal Header */}
 
-                <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start justify-between mb-1">
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-foreground">{deal.company}</h3>
-                      <Badge variant="outline" className="text-xs">{deal.type}</Badge>
                       <Badge variant="outline" className={`rounded-full text-xs ${getRiskClasses(deal.riskLevel).text} ${getRiskClasses(deal.riskLevel).border} hover:bg-transparent`}>{deal.riskLevel} risk</Badge>
                       {dealNeedsImmediateAttention(deal) && (
                         <span className="flex items-center gap-1 text-red-600 text-xs font-medium">
@@ -563,25 +666,11 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                         </span>
                       )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-semibold text-foreground">{formatAmount(deal.value)}</span>
-                      </span>
-                     
-                     <span className="flex items-center gap-1">
-                       <Users className="h-4 w-4 text-muted-foreground" />
-                       {deal.owner}
-                     </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {formatDate(deal.closeDate)}
-                      </span>
-                    </div>
+                    
                   </div>
                   <div className="flex items-center gap-2">
                     {getConfidenceIcon(deal.probability)}
-                    <span className={`font-semibold text-${getConfidenceColor(deal.probability)}`}>{deal.probability}% confidence</span>
+                    <span className={`font-semibold text-${getConfidenceColor(deal.probability)}`}>{deal.probability}% Win Rate</span>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -613,33 +702,51 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                   </div>
                 </div>
 
-                {/* Progress Bar */}
-                <div className="mb-3">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-semibold text-foreground">{formatAmount(deal.value)}</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      {deal.owner}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      Close: {formatDate(deal.closeDate)}
+                    </span>
+                  </div>
                   <div className="flex items-center gap-2">
-                    <Progress value={deal.progress} className="h-1 flex-1" />
+                    <Progress value={deal.progress} className="h-1 w-80" />
                     <span className="text-xs font-semibold text-foreground">{deal.progress}%</span>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleExpanded(deal.id)}>
-                      <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${expanded[deal.id] ? 'rotate-90' : ''}`} />
+                    <Button variant="ghost" size="icon" className={`h-8 w-8 ${expanded[deal.id] ? 'bg-primary/10' : ''}`} onClick={() => toggleExpanded(deal.id)}>
+                      <ChevronRight className={`h-4 w-4 transition-transform ${expanded[deal.id] ? 'rotate-90 text-primary' : 'text-muted-foreground'}`} />
                       <span className="sr-only">Toggle details</span>
                     </Button>
                   </div>
-                  {!expanded[deal.id] && (
-                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        Next step: <span className="font-medium text-foreground">{formatDate(deal.nextStepDate)}</span>
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        Last activity: <span className="font-medium text-foreground">{deal.lastActivity}</span>
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium text-foreground">{deal.stakeholders}</span> stakeholders
-                      </span>
-                    </div>
-                  )}
                 </div>
+
+                {!expanded[deal.id] && (
+                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      Next step: <span className="font-medium text-foreground">{formatDate(deal.nextStepDate)}</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      Last activity: <span className="font-medium text-foreground">{deal.lastActivity}</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium text-foreground">{deal.stakeholders}</span> stakeholders
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Tag className="h-4 w-4 text-muted-foreground" />
+                      Type: <span className="font-medium text-foreground">{deal.type}</span>
+                    </span>
+                  </div>
+                )}
 
                 {/* Collapsible Details */}
                 {expanded[deal.id] && (
@@ -648,6 +755,10 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                       <div>
                         <h4 className="font-medium text-foreground mb-2">Next Step</h4>
                         <p className="text-sm text-muted-foreground">{deal.nextStep}</p>
+                        <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          <span>{formatDate(deal.nextStepDate)}</span>
+                        </div>
                       </div>
                       {deal.blockers.length > 0 && (
                         <div>
@@ -664,6 +775,14 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                           </div>
                         </div>
                       )}
+                      <div>
+                        <h4 className="font-medium text-foreground mb-2">Notes</h4>
+                        <div className="space-y-1">
+                          <p className="text-sm text-muted-foreground">• Align budget for Q1 rollout</p>
+                          <p className="text-sm text-muted-foreground">• Legal review needs template updates</p>
+                          <p className="text-sm text-muted-foreground">• Schedule executive sponsor call next week</p>
+                        </div>
+                      </div>
                       <div className="md:col-span-3">
                         <h4 className="font-medium text-foreground mb-2">Stakeholder Progress</h4>
                         <div className="grid grid-cols-3 gap-3">
@@ -673,8 +792,8 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                             return (
                               <button
                                 key={s.name}
-                                className={`text-left p-3 rounded-md w-full ${needsReachout(s) ? 'bg-red-500/10 border border-red-500/20 hover:bg-red-500/20' : 'bg-muted hover:bg-muted/80'} transition-colors`}
-                                onClick={() => { setSelectedStakeholder(enrichStakeholder(s)); setStakeholderDialogOpen(true); }}
+                                className={`text-left p-3 rounded-md w-full bg-muted hover:bg-muted/80 border ${needsReachout(s) ? 'border-red-500/50' : 'border-transparent'} transition-colors`}
+                                onClick={() => { setSelectedStakeholder({ ...enrichStakeholder(s), company: deal.company }); setStakeholderDialogOpen(true); }}
                               >
                                 <div className="flex items-center justify-between">
                                   <div>
@@ -687,9 +806,12 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                                         </span>
                                       )}
                                     </div>
-                                    <p className="text-xs text-muted-foreground">{s.role} • Last contact: {formatDate(s.lastContact)}</p>
+                                    <p className="text-xs text-muted-foreground">{s.role} • {deal.company}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">Last contact: {formatDate(s.lastContact)}</p>
                                   </div>
-                                  <Badge variant="outline" className={`text-xs ${inf.bg} ${inf.text} border-transparent hover:bg-transparent`}>{level}</Badge>
+                                  <div className="flex items-center gap-1">
+                                    {getEngagementIcon(level.toLowerCase() as 'low' | 'medium' | 'high')}
+                                  </div>
                                 </div>
                               </button>
                             );
@@ -720,17 +842,17 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                 </div>
               )}
               {/* Header mirrors Stakeholder card */}
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={selectedStakeholder.avatar} alt={selectedStakeholder.name} />
-                    <AvatarFallback>{selectedStakeholder.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <DialogTitle className="m-0 p-0">{selectedStakeholder.name}</DialogTitle>
-                    <DialogDescription className="mt-0">{selectedStakeholder.role}</DialogDescription>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={selectedStakeholder.avatar} alt={selectedStakeholder.name} />
+                      <AvatarFallback>{selectedStakeholder.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <DialogTitle className="m-0 p-0">{selectedStakeholder.name}</DialogTitle>
+                      <DialogDescription className="mt-0">{selectedStakeholder.role}{selectedStakeholder.company ? ` • ${selectedStakeholder.company}` : ''}</DialogDescription>
+                    </div>
                   </div>
-                </div>
                 <div className="flex items-center gap-2">
                   {getInfluenceIcon(selectedStakeholder.influence)}
                   <Badge variant="outline" className="text-xs capitalize">
@@ -742,8 +864,8 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
               {/* Engagement Metrics */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center">
-                  <div className={`w-8 h-8 rounded-full bg-${getEngagementColor(selectedStakeholder.engagement)}/20 flex items-center justify-center mx-auto mb-1`}>
-                    <Zap className={`h-4 w-4 text-${getEngagementColor(selectedStakeholder.engagement)}`} />
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-1`}>
+                    {getEngagementIcon(selectedStakeholder.engagement)}
                   </div>
                   <p className="text-xs text-muted-foreground">Engagement</p>
                   <p className="text-sm font-medium capitalize">{selectedStakeholder.engagement}</p>

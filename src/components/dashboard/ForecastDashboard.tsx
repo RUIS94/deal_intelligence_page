@@ -29,15 +29,12 @@ const ForecastDashboard = () => {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
+      day: 'numeric'
     });
   };
 
   return (
-    <div className="min-h-screen bg-white p-6">
+    <div className="min-h-screen bg-white p-2">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="sticky top-0 z-30 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white p-6">
@@ -66,7 +63,7 @@ const ForecastDashboard = () => {
             {/* Divider */}
             {/*<div className="h-6 w-px bg-border mx-2" />*/}
             
-            {/* Icon Buttons */}
+            {/* Icon Buttons
             <Button variant="ghost" size="sm">
               <Share className="h-4 w-4" />
             </Button>
@@ -75,7 +72,7 @@ const ForecastDashboard = () => {
             </Button>
             <Button variant="ghost" size="sm">
               <Settings className="h-4 w-4" />
-            </Button>
+            </Button>*/}
           </div>
         </div>
 
