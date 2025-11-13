@@ -52,7 +52,8 @@ import {
   Check,
   Tag,
   ThumbsUp,
-  ThumbsDown
+  ThumbsDown,
+  ShieldAlert
 } from 'lucide-react';
 import OrgChartMapping from './OrgChartMapping';
 import DealProgressDetails from './DealProgressDetails';
@@ -114,7 +115,7 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
       blockers: ['Budget approval pending', 'Legal review required'],
       stakeholders: 4,
       lastActivity: '2 days ago',
-      riskLevel: 'medium',
+      riskLevel: 'Medium',
       closeDate: '2025-01-30',
       probability: 85,
       stakeholderDetails: [
@@ -137,7 +138,7 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
       blockers: ['Competitor evaluation'],
       stakeholders: 3,
       lastActivity: '1 day ago',
-      riskLevel: 'high',
+      riskLevel: 'High',
       closeDate: '2025-01-25',
       probability: 65,
       stakeholderDetails: [
@@ -158,7 +159,7 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
       blockers: [],
       stakeholders: 6,
       lastActivity: '5 hours ago',
-      riskLevel: 'low',
+      riskLevel: 'Low',
       closeDate: '2025-02-15',
       probability: 70,
       stakeholderDetails: [
@@ -180,7 +181,7 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
       blockers: ['Key stakeholder unavailable'],
       stakeholders: 5,
       lastActivity: '3 days ago',
-      riskLevel: 'high',
+      riskLevel: 'High',
       closeDate: '2025-03-01',
       probability: 45,
       stakeholderDetails: [
@@ -202,7 +203,7 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
       blockers: ['Awaiting CFO feedback'],
       stakeholders: 4,
       lastActivity: '8 hours ago',
-      riskLevel: 'medium',
+      riskLevel: 'Medium',
       closeDate: '2025-02-10',
       probability: 62,
       stakeholderDetails: [
@@ -223,7 +224,7 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
       blockers: [],
       stakeholders: 5,
       lastActivity: '1 day ago',
-      riskLevel: 'low',
+      riskLevel: 'Low',
       closeDate: '2025-01-28',
       probability: 88,
       stakeholderDetails: [
@@ -658,11 +659,14 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-foreground">{deal.company}</h3>
-                      <Badge variant="outline" className={`rounded-full text-xs ${getRiskClasses(deal.riskLevel).text} ${getRiskClasses(deal.riskLevel).border} hover:bg-transparent`}>{deal.riskLevel} risk</Badge>
                       {dealNeedsImmediateAttention(deal) && (
-                        <span className="flex items-center gap-1 text-red-600 text-xs font-medium">
-                          <AlertTriangle className="h-4 w-4 text-red-500" />
-                          Attention Required
+                        <span className="inline-flex items-center">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertTriangle className="h-4 w-4 text-red-500" />
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-white">Attention Required</TooltipContent>
+                          </Tooltip>
                         </span>
                       )}
                     </div>
@@ -728,7 +732,7 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                 </div>
 
                 {!expanded[deal.id] && (
-                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs text-muted-foreground">
+                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       Next step: <span className="font-medium text-foreground">{formatDate(deal.nextStepDate)}</span>
@@ -739,11 +743,15 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                     </span>
                     <span className="flex items-center gap-1">
                       <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-foreground">{deal.stakeholders}</span> stakeholders
+                      Stakeholders: <span className="font-medium text-foreground">{deal.stakeholders}</span>
                     </span>
                     <span className="flex items-center gap-1">
                       <Tag className="h-4 w-4 text-muted-foreground" />
                       Type: <span className="font-medium text-foreground">{deal.type}</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <ShieldAlert className="h-4 w-4 text-muted-foreground"/>
+                      Risk: <span className={`font-medium ${getRiskClasses(deal.riskLevel).text}`}>{deal.riskLevel}</span>
                     </span>
                   </div>
                 )}
@@ -878,7 +886,7 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                   <p className="text-sm font-medium capitalize">{selectedStakeholder.sentiment}</p>
                 </div>
                 <div className="text-center">
-                  <div className="w-8 h-8 rounded-full bg-info/20 flex items-center justify-center mx-auto mb-1">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-1">
                     <MessageSquare className="h-4 w-4 text-info" />
                   </div>
                   <p className="text-xs text-muted-foreground">Interactions</p>
