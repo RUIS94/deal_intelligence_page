@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,7 +41,7 @@ import {
   Phone,
   MessageSquare,
   Video,
-  Zap,
+  Trash2,
   Crown,
   Heart,
   SlidersHorizontal,
@@ -58,6 +59,9 @@ import {
 import OrgChartMapping from './OrgChartMapping';
 import DealProgressDetails from './DealProgressDetails';
 import StakeholderSentimentPanel from './StakeholderSentimentPanel';
+import OrgChartPopup from '@/components/popups/OrgChartPopup';
+import DealProgressPopup from '@/components/popups/DealProgressPopup';
+import InfoPopup from '@/components/popups/InfoPopup';
 
 interface DealProgressTrackerProps {
   period: string;
@@ -67,10 +71,10 @@ interface DealProgressTrackerProps {
 
 const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team, searchQuery }) => {
 
-  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
-  const toggleExpanded = (id: number) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+  const [expanded] = useState<Record<number, boolean>>({});
 
   const [activeSort, setActiveSort] = useState<string>('');
+  const [filterOpen, setFilterOpen] = useState(false);
 
   // Dialog state for stakeholder details
   const [stakeholderDialogOpen, setStakeholderDialogOpen] = useState(false);
@@ -93,6 +97,28 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
 
   // Deal details popup (Org Chart + placeholders)
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [orgChartDialogOpen, setOrgChartDialogOpen] = useState(false);
+  const [dealProgressDialogOpen, setDealProgressDialogOpen] = useState(false);
+  const [infoDialogOpen, setInfoDialogOpen] = useState(false);
+  const [infoDialogMessage, setInfoDialogMessage] = useState<string>('');
+  const [activitiesDialogOpen, setActivitiesDialogOpen] = useState(false);
+  const [activitiesForDeal, setActivitiesForDeal] = useState<Array<{ contact: string; method: string; date: string; duration: string }>>([]);
+
+  const openInfo = (msg: string) => {
+    setInfoDialogMessage(msg);
+    setInfoDialogOpen(true);
+  };
+
+  const buildActivities = (deal: typeof deals[number]) => {
+    const methods = ['email', 'phone', 'video-call', 'meeting'];
+    const items = (deal.stakeholderDetails ?? []).map((s, i) => ({
+      contact: s.name,
+      method: methods[i % methods.length],
+      date: s.lastContact,
+      duration: i % 2 === 0 ? '45 min' : '30 min',
+    }));
+    return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  };
   // Selected deal info for dialog header
   const [selectedDealForDetails, setSelectedDealForDetails] = useState<{
     company: string;
@@ -529,10 +555,6 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
           <div className="flex items-center justify-between gap-3">
             <CardTitle className="flex items-center gap-3">
               <span>Deals Overview</span>
-              <span className="text-sm text-muted-foreground flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                {period}
-              </span>
             </CardTitle>
             <div className="flex items-center gap-2">
               <Input
@@ -543,66 +565,100 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-white border-primary text-primary h-9 w-28 justify-center gap-2"
+                className="bg-white rounded-lg border border-[#605BFF] text-[#605BFF] hover:bg-[#605BFF] hover:text-white h-9 w-28 justify-center gap-2"
               >
                 <Search className="h-4 w-4" />
                 Search
               </Button>
-              <DropdownMenu>
+              <DropdownMenu open={filterOpen} onOpenChange={setFilterOpen}>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="bg-white text-[#FF8E1C] border border-[#FF8E1C] h-9 w-28 justify-center gap-2"
+                    className="bg-white rounded-lg text-[#FF8E1C] border border-[#FF8E1C] hover:bg-[#FF8E1C] hover:text-white h-9 w-28 justify-center gap-2"
                   >
                     <Filter className="h-4 w-4" />
                     Filter
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64 bg-white">
-                  <div className="p-2 space-y-3">
+                <DropdownMenuContent align="end" className="w-[380px] p-0 bg-white">
+                  <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Filter size={18} className="text-[#FF8E1C]" />
+                      <h3 className="text-lg font-semibold text-gray-900">Filter Deals</h3>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setFilterOpen(false)}>
+                      <X className="h-4 w-4" />
+                      <span className="sr-only">Close</span>
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4">
                     <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground">Type</span>
-                      <select className="w-full h-8 border border-border rounded-md px-2 text-sm bg-white">
-                        <option>All</option>
-                        <option>New Business</option>
-                        <option>Renewal</option>
-                        <option>Expansion</option>
-                        <option>Cross-sell</option>
-                      </select>
+                      <span className="text-sm font-semibold text-gray-800">Type</span>
+                      <Select>
+                        <SelectTrigger className="h-8">
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="new-business">New Business</SelectItem>
+                          <SelectItem value="renewal">Renewal</SelectItem>
+                          <SelectItem value="expansion">Expansion</SelectItem>
+                          <SelectItem value="cross-sell">Cross-sell</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground">Stage</span>
-                      <select className="w-full h-8 border border-border rounded-md px-2 text-sm bg-white">
-                        <option>All</option>
-                        <option>Prospecting</option>
-                        <option>Discovery</option>
-                        <option>Qualified</option>
-                        <option>Proposal</option>
-                        <option>Negotiation</option>
-                      </select>
+                      <span className="text-sm font-semibold text-gray-800">Stage</span>
+                      <Select>
+                        <SelectTrigger className="h-8">
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="prospecting">Prospecting</SelectItem>
+                          <SelectItem value="discovery">Discovery</SelectItem>
+                          <SelectItem value="qualified">Qualified</SelectItem>
+                          <SelectItem value="proposal">Proposal</SelectItem>
+                          <SelectItem value="negotiation">Negotiation</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground">Risk</span>
-                      <select className="w-full h-8 border border-border rounded-md px-2 text-sm bg-white">
-                        <option>All</option>
-                        <option>low</option>
-                        <option>medium</option>
-                        <option>high</option>
-                      </select>
+                      <span className="text-sm font-semibold text-gray-800">Risk</span>
+                      <Select>
+                        <SelectTrigger className="h-8">
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="low">low</SelectItem>
+                          <SelectItem value="medium">medium</SelectItem>
+                          <SelectItem value="high">high</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground">Owner</span>
-                      <select className="w-full h-8 border border-border rounded-md px-2 text-sm bg-white">
-                        <option>All</option>
-                        <option>Sarah Johnson</option>
-                        <option>Michael Chen</option>
-                        <option>Emily Rodriguez</option>
-                        <option>David Kim</option>
-                        <option>Olivia Park</option>
-                        <option>Noah Lee</option>
-                      </select>
+                      <span className="text-sm font-semibold text-gray-800">Owner</span>
+                      <Select>
+                        <SelectTrigger className="h-8">
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="Sarah Johnson">Sarah Johnson</SelectItem>
+                          <SelectItem value="Michael Chen">Michael Chen</SelectItem>
+                          <SelectItem value="Emily Rodriguez">Emily Rodriguez</SelectItem>
+                          <SelectItem value="David Kim">David Kim</SelectItem>
+                          <SelectItem value="Olivia Park">Olivia Park</SelectItem>
+                          <SelectItem value="Noah Lee">Noah Lee</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
+                  </div>
+                  <div className="px-4 py-3 border-t border-border/40 flex items-center justify-end gap-2">
+                    <Button variant="outline" size="sm" className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]">Clear All</Button>
+                    <Button size="sm"  className="flex-1 px-4 py-2.5 text-sm font-medium bg-white border border-[#605BFF] text-[#605BFF] rounded-lg transition-all duration-200 hover:bg-[#605BFF] hover:text-white hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]">Apply Filter</Button>
                   </div>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -651,49 +707,57 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
               <div 
                 key={deal.id}
                 className={`rounded-lg p-4 transition-all duration-200 border border-border`}
-                onClick={(e) => { const t = e.target as HTMLElement; if (!expanded[deal.id] && !t.closest('button,a,input,select,textarea,[role="button"]')) toggleExpanded(deal.id); }}
               >
-                {/* Deal Header */}
-
-                <div className="flex items-start justify-between mb-1">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-foreground">{deal.company}</h3>
-                      {dealNeedsImmediateAttention(deal) && (
-                        <span className="inline-flex items-center">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <AlertTriangle className="h-4 w-4 text-red-500" />
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-white">Attention Required</TooltipContent>
-                          </Tooltip>
-                        </span>
-                      )}
+                  <div className="mb-2 border-b pb-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-[repeat(5,_minmax(0,_1fr))_auto] gap-3 text-xs text-muted-foreground">
+                    <button className="flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-muted/40 text-left" onClick={() => openInfo('Behavior simulation: Task popup opens here')}>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span>Next step:</span>
+                      </span>
+                      <span className="font-medium text-foreground">{formatDate(deal.nextStepDate)}</span>
+                    </button>
+                    <button className="flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-muted/40 text-left" onClick={() => { setSelectedDeal(deal); setOrgChartDialogOpen(true); }}>
+                      <span className="flex items-center gap-1">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span>Stakeholders:</span>
+                      </span>
+                      <span className="font-medium text-foreground">{deal.stakeholders}</span>
+                    </button>
+                    <button className="flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-muted/40 text-left" onClick={() => { setActivitiesForDeal(buildActivities(deal)); setActivitiesDialogOpen(true); }}>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>Last activity:</span>
+                      </span>
+                      <span className="font-medium text-foreground">{deal.lastActivity}</span>
+                    </button>
+                    <div className="flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-muted/40">
+                      <span className="flex items-center gap-1">
+                        <Tag className="h-4 w-4 text-muted-foreground" />
+                        <span>Type:</span>
+                      </span>
+                      <span className="font-medium text-foreground">{deal.type}</span>
                     </div>
-                    
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {getConfidenceIcon(deal.probability)}
-                    <span className={`font-semibold text-${getConfidenceColor(deal.probability)}`}>{deal.probability}% Win Rate</span>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="h-4 w-4 text-muted-foreground" />
-                          <span className="sr-only">Open actions</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-white">
-                          <DropdownMenuItem onClick={() => { setSelectedDeal(deal); setSelectedDealForDetails({ company: deal.company, value: deal.value, stakeholders: deal.stakeholders }); setDetailsDialogOpen(true); }}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
+                    <div className="flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-muted/40">
+                      <span className="flex items-center gap-1">
+                        <ShieldAlert className="h-4 w-4 text-muted-foreground"/>
+                        <span>Risk:</span>
+                      </span>
+                      <span className={`font-medium ${getRiskClasses(deal.riskLevel).text}`}>{deal.riskLevel}</span>
+                    </div>
+
+                    <div className="flex items-center justify-end justify-self-end">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                            <span className="sr-only">Open actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-white">
                           <DropdownMenuItem>
                             <Pencil className="h-4 w-4 mr-2" />
-                            Update Progress
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <FileText className="h-4 w-4 mr-2" />
-                            Add Notes
+                            Edit
                           </DropdownMenuItem>
                           {deal.probability < 60 && (
                             <DropdownMenuItem className="text-destructive">
@@ -701,8 +765,40 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                               Escalate
                             </DropdownMenuItem>
                           )}
+                          <DropdownMenuItem className="text-destructive" onClick={() => openInfo('Behavior simulation: Open confirmation popup')}>
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                    </div>
+                  </div>
+                </div>
+                {/* Deal Header */}
+
+                <div className="flex items-start justify-between mb-1">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-foreground">{deal.company}</h3>
+                      {dealNeedsImmediateAttention(deal) && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-red-600 text-white ring-2 ring-red-300 shadow-md animate-pulse"
+                              onClick={() => { setSelectedDeal(deal); setOrgChartDialogOpen(true); }}
+                            >
+                              <Phone className="h-3.5 w-3.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-white">Immediate Action Required</TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                    
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getConfidenceIcon(deal.probability)}
+                    <span className={`font-semibold text-${getConfidenceColor(deal.probability)}`}>{deal.probability}% Win Rate</span>
                   </div>
                 </div>
 
@@ -721,114 +817,82 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                       Close: {formatDate(deal.closeDate)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <button className="flex items-center gap-2 cursor-pointer group" onClick={() => { setSelectedDeal(deal); setDealProgressDialogOpen(true); }}>
                     <Progress value={deal.progress} className="h-1 w-80" />
-                    <span className="text-xs font-semibold text-foreground">{deal.progress}%</span>
-                    <Button variant="ghost" size="icon" className={`h-8 w-8 ${expanded[deal.id] ? 'bg-primary/10' : ''}`} onClick={() => toggleExpanded(deal.id)}>
-                      <ChevronRight className={`h-4 w-4 transition-transform ${expanded[deal.id] ? 'rotate-90 text-primary' : 'text-muted-foreground'}`} />
-                      <span className="sr-only">Toggle details</span>
-                    </Button>
-                  </div>
+                    <span className="text-xs font-semibold text-foreground group-hover:text-primary">{deal.progress}%</span>
+                  </button>
                 </div>
 
-                {!expanded[deal.id] && (
-                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      Next step: <span className="font-medium text-foreground">{formatDate(deal.nextStepDate)}</span>
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      Last activity: <span className="font-medium text-foreground">{deal.lastActivity}</span>
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      Stakeholders: <span className="font-medium text-foreground">{deal.stakeholders}</span>
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Tag className="h-4 w-4 text-muted-foreground" />
-                      Type: <span className="font-medium text-foreground">{deal.type}</span>
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <ShieldAlert className="h-4 w-4 text-muted-foreground"/>
-                      Risk: <span className={`font-medium ${getRiskClasses(deal.riskLevel).text}`}>{deal.riskLevel}</span>
-                    </span>
-                  </div>
-                )}
+                
 
-                {/* Collapsible Details */}
-                {expanded[deal.id] && (
-                  <div className="mt-4 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="mt-4 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div onClick={() => openInfo('Behavior simulation: Task popup opens here')} className="group cursor-pointer">
+                      <h4 className="font-medium text-foreground mb-2">Next Step</h4>
+                      <p className="text-sm text-muted-foreground group-hover:text-primary">{deal.nextStep}</p>
+                    </div>
+                    {deal.blockers.length > 0 && (
                       <div>
-                        <h4 className="font-medium text-foreground mb-2">Next Step</h4>
-                        <p className="text-sm text-muted-foreground">{deal.nextStep}</p>
-                        <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          <span>{formatDate(deal.nextStepDate)}</span>
-                        </div>
-                      </div>
-                      {deal.blockers.length > 0 && (
-                        <div>
-                          <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
-                            Key Blockers
-                          </h4>
-                          <div className="space-y-1">
-                            {deal.blockers.map((blocker, index) => (
-                              <div key={index} className="flex items-center gap-2">
-                                <XCircle className="h-3 w-3 text-destructive" />
-                                <span className="text-sm text-muted-foreground">{blocker}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      <div>
-                        <h4 className="font-medium text-foreground mb-2">Notes</h4>
+                        <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                          Key Blockers
+                        </h4>
                         <div className="space-y-1">
-                          <p className="text-sm text-muted-foreground">• Align budget for Q1 rollout</p>
-                          <p className="text-sm text-muted-foreground">• Legal review needs template updates</p>
-                          <p className="text-sm text-muted-foreground">• Schedule executive sponsor call next week</p>
+                          {deal.blockers.map((blocker, index) => (
+                            <div key={index} className="group flex items-center gap-2 cursor-pointer" onClick={() => openInfo('Behavior simulation: Navigate to Meeting Intelligence page/popup to show blockers')}>
+                              <XCircle className="h-3 w-3 text-destructive" />
+                              <span className="text-sm text-muted-foreground group-hover:text-primary">{blocker}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <div className="md:col-span-3">
-                        <h4 className="font-medium text-foreground mb-2">Stakeholder Progress</h4>
-                        <div className="grid grid-cols-3 gap-3">
-                          {deal.stakeholderDetails?.map((s) => {
-                            const level = getInfluenceLevel(s.progress);
-                            const inf = getInfluenceClasses(level);
-                            return (
-                              <button
-                                key={s.name}
-                                className={`text-left p-3 rounded-md w-full bg-muted hover:bg-muted/80 border ${needsReachout(s) ? 'border-red-500/50' : 'border-transparent'} transition-colors`}
-                                onClick={() => { setSelectedStakeholder({ ...enrichStakeholder(s), company: deal.company }); setStakeholderDialogOpen(true); }}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <div className="flex items-center gap-2">
-                                      <p className="font-medium text-foreground">{s.name}</p>
-                                      {needsReachout(s) && (
-                                        <span className="inline-flex items-center gap-1 text-xs text-red-600">
-                                          <AlertTriangle className="h-3 w-3 text-red-500" />
-                                          Reach out immediately
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">{s.role} • {deal.company}</p>
-                                    <p className="text-xs text-muted-foreground mt-0.5">Last contact: {formatDate(s.lastContact)}</p>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    {getEngagementIcon(level.toLowerCase() as 'low' | 'medium' | 'high')}
-                                  </div>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
+                    )}
+                    <div>
+                      <h4 className="font-medium text-foreground mb-2">Notes</h4>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground cursor-pointer hover:text-primary" onClick={() => openInfo('Behavior simulation: Navigate to Meeting Intelligence page/popup to show notes')}>• Align budget for Q1 rollout</p>
+                        <p className="text-sm text-muted-foreground cursor-pointer hover:text-primary" onClick={() => openInfo('Behavior simulation: Navigate to Meeting Intelligence page/popup to show notes')}>• Legal review needs template updates</p>
+                        <p className="text-sm text-muted-foreground cursor-pointer hover:text-primary" onClick={() => openInfo('Behavior simulation: Navigate to Meeting Intelligence page/popup to show notes')}>• Schedule executive sponsor call next week</p>
                       </div>
                     </div>
+                    {/*
+                    <div className="md:col-span-3">
+                      <h4 className="font-medium text-foreground mb-2">Stakeholder Progress</h4>
+                      <div className="grid grid-cols-3 gap-3">
+                        {deal.stakeholderDetails?.map((s) => {
+                          const level = getInfluenceLevel(s.progress);
+                          const inf = getInfluenceClasses(level);
+                          return (
+                            <button
+                              key={s.name}
+                              className={`text-left p-3 rounded-md w-full bg-muted hover:bg-muted/80 border ${needsReachout(s) ? 'border-red-500/50' : 'border-transparent'} transition-colors`}
+                              onClick={() => { setSelectedStakeholder({ ...enrichStakeholder(s), company: deal.company }); setStakeholderDialogOpen(true); }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-medium text-foreground">{s.name}</p>
+                                    {needsReachout(s) && (
+                                      <span className="inline-flex items-center gap-1 text-xs text-red-600">
+                                        <AlertTriangle className="h-3 w-3 text-red-500" />
+                                        Reach out immediately
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">{s.role} • {deal.company}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">Last contact: {formatDate(s.lastContact)}</p>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  {getEngagementIcon(level.toLowerCase() as 'low' | 'medium' | 'high')}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    */}
                   </div>
-                )}
+                </div>
               </div>
             ))}
           </div>
@@ -895,6 +959,8 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
               </div>
 
               {/* Last Contact and Risk */}
+
+              
               <div className="border-t pt-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm">
@@ -933,6 +999,36 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
           )}
         </DialogContent>
       </Dialog>
+
+  <OrgChartPopup open={orgChartDialogOpen} onOpenChange={setOrgChartDialogOpen} period={period} team={team} searchQuery={searchQuery} company={selectedDeal?.company} />
+  <DealProgressPopup open={dealProgressDialogOpen} onOpenChange={setDealProgressDialogOpen} deal={selectedDeal} />
+  <InfoPopup open={infoDialogOpen} onOpenChange={setInfoDialogOpen} title="Info">
+    <div className="text-sm text-muted-foreground">{infoDialogMessage}</div>
+  </InfoPopup>
+
+  <Dialog open={activitiesDialogOpen} onOpenChange={setActivitiesDialogOpen}>
+    <DialogContent>
+      <div className="space-y-2">
+        {activitiesForDeal.map((a, idx) => (
+          <button
+            key={idx}
+            className="w-full text-left p-2 rounded hover:bg-muted/40 flex items-center gap-5"
+            onClick={() => openInfo('Behavior simulation: Navigate to Meeting Intelligence page/popup to show Meeting/Call summary')}
+          >
+            <div className="flex items-center gap-2">
+              {getContactIcon(a.method)}
+              <span className="text-sm font-medium text-foreground">{a.contact}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>{new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+              <span>•</span>
+              <span>{a.duration}</span>
+            </div>
+          </button>
+        ))}
+      </div>
+    </DialogContent>
+  </Dialog>
 
   {/* Deal Details Dialog with header/body/footer */}
   <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
@@ -983,25 +1079,7 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
             </div>
           </Tabs>
 
-      {/* Footer: Buying Committee Analysis content (only show on Org Chart) */}
-      {/* {activeDetailsTab === 'org-chart' && (
-        <div className="border-t p-4 sm:p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-foreground mb-1">2</div>
-              <p className="text-sm text-muted-foreground">Decision Makers Engaged</p>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-foreground mb-1">75%</div>
-              <p className="text-sm text-muted-foreground">High Engagement Rate</p>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-foreground mb-1">1</div>
-              <p className="text-sm text-muted-foreground">Internal Champions</p>
-            </div>
-          </div>
-        </div>
-      )}*/}
+      {/* Footer: Buying Committee Analysis content (only show on Org Chart) intentionally removed */}
     </DialogContent>
   </Dialog>
     </div>

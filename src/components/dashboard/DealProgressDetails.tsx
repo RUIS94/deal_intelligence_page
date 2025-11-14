@@ -64,7 +64,7 @@ const DealProgressDetails: React.FC<DealProgressDetailsProps> = ({ deal }) => {
   return (
     <div className="px-0 space-y-4">
       {/* Buyer’s Journey: 卡片 + 标题右侧显示 Time invested */}
-      <Card className="shadow-none border border-border rounded-lg bg-transparent">
+      <Card className="shadow-none border-0 rounded-lg bg-transparent">
         <CardHeader className="py-2 px-2">
           <div className="flex items-baseline gap-2">
             <CardTitle className="text-base">Buyer’s Journey</CardTitle>
@@ -107,9 +107,10 @@ const DealProgressDetails: React.FC<DealProgressDetailsProps> = ({ deal }) => {
           </div>
         </CardContent>
       </Card>
+      <div className="border-t border-border mx-2" />
 
       {/* Sales Process: 卡片 + 标题右侧显示 Time invested */}
-      <Card className="shadow-none border border-border rounded-lg bg-transparent">
+      <Card className="shadow-none border-0 rounded-lg bg-transparent">
         <CardHeader className="py-2 px-2">
           <div className="flex items-baseline gap-2">
             <CardTitle className="text-base">Sales Process</CardTitle>
