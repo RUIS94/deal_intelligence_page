@@ -29,7 +29,7 @@ interface DealProgressPopupProps {
 
 const DealProgressPopup: React.FC<DealProgressPopupProps> = ({ open, onOpenChange, deal }) => {
   return (
-    <InfoPopup open={open} onOpenChange={onOpenChange} title="Deal Progress">
+    <InfoPopup open={open} onOpenChange={onOpenChange} title="Deal Progress" className="!w-[70vw]">
       <DealProgressDetails deal={deal} />
     </InfoPopup>
   );
