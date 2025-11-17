@@ -24,20 +24,21 @@ import {
   DialogDescription,
   DialogClose,
 } from '@/components/ui/dialog';
-import { 
-  AlertTriangle, 
-  Calendar, 
-  ChevronRight,
-  Clock,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Users,
-  CheckCircle,
-  XCircle,
-  X,
-  Eye,
-  Mail,
+  import { 
+    AlertTriangle, 
+    Calendar, 
+    ChevronRight,
+    Clock,
+    DollarSign,
+    TrendingUp,
+    TrendingDown,
+    Users,
+    User,
+    CheckCircle,
+    XCircle,
+    X,
+    Eye,
+    Mail,
   Phone,
   MessageSquare,
   Video,
@@ -118,6 +119,25 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
       duration: i % 2 === 0 ? '45 min' : '30 min',
     }));
     return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  };
+
+  const getMethodLabel = (m: string) => {
+    switch (m) {
+      case 'email': return 'Email';
+      case 'phone': return 'Phone';
+      case 'video-call': return 'Video Call';
+      case 'meeting': return 'Meeting';
+      default: return m;
+    }
+  };
+
+  const getLatestActivity = (deal: typeof deals[number]) => {
+    const items = buildActivities(deal);
+    if (items.length > 0) {
+      const a = items[0];
+      return { summary: `${getMethodLabel(a.method)} with ${a.contact}` , date: a.date };
+    }
+    return { summary: deal.lastActivity, date: deal.nextStepDate };
   };
   // Selected deal info for dialog header
   const [selectedDealForDetails, setSelectedDealForDetails] = useState<{
@@ -318,6 +338,11 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
     }
   };
 
+  const riskFromProbability = (p?: number) => {
+    const v = typeof p === 'number' ? p : 50;
+    return v >= 80 ? 'low' : v >= 50 ? 'medium' : 'high';
+  };
+
   // Attention logic: mark stakeholders needing reachout (must be stale contact AND low progress)
   const needsReachout = (s: { lastContact: string; progress: number }) => {
     const daysSince = (dateStr: string) => {
@@ -425,14 +450,18 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
     });
   };
 
-  const getConfidenceColor = (p: number) => (p >= 80 ? 'success' : p >= 60 ? 'warning' : 'destructive');
+  const getConfidenceStyle = (p: number) => {
+    if (p >= 80) return { cls: 'text-success', style: undefined as React.CSSProperties | undefined };
+    if (p >= 50) return { cls: undefined, style: { color: '#FF8E1C' } as React.CSSProperties };
+    return { cls: 'text-destructive', style: undefined as React.CSSProperties | undefined };
+  };
   const getConfidenceIcon = (p: number) => {
-    const color = getConfidenceColor(p);
+    const s = getConfidenceStyle(p);
     return p >= 80
-      ? <CheckCircle className={`h-4 w-4 text-${color}`} />
-      : p >= 60
-        ? <TrendingUp className={`h-4 w-4 text-${color}`} />
-        : <AlertTriangle className={`h-4 w-4 text-${color}`} />;
+      ? <CheckCircle className={`h-4 w-4 ${s.cls ?? ''}`} style={s.style} />
+      : p >= 50
+        ? <TrendingUp className="h-4 w-4" style={s.style} />
+        : <AlertTriangle className={`h-4 w-4 ${s.cls ?? ''}`} style={s.style} />;
   };
   const getTypeColor = (type: string) => {
     const colors: Record<string, string> = {
@@ -708,72 +737,7 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                 key={deal.id}
                 className={`rounded-lg p-4 transition-all duration-200 border border-border`}
               >
-                  <div className="mb-2 border-b pb-2">
-                  <div className="grid grid-cols-1 sm:grid-cols-[repeat(5,_minmax(0,_1fr))_auto] gap-3 text-xs text-muted-foreground">
-                    <button className="flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-muted/40 text-left" onClick={() => openInfo('Behavior simulation: Task popup opens here')}>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span>Next step:</span>
-                      </span>
-                      <span className="font-medium text-foreground">{formatDate(deal.nextStepDate)}</span>
-                    </button>
-                    <button className="flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-muted/40 text-left" onClick={() => { setSelectedDeal(deal); setOrgChartDialogOpen(true); }}>
-                      <span className="flex items-center gap-1">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span>Stakeholders:</span>
-                      </span>
-                      <span className="font-medium text-foreground">{deal.stakeholders}</span>
-                    </button>
-                    <button className="flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-muted/40 text-left" onClick={() => { setActivitiesForDeal(buildActivities(deal)); setActivitiesDialogOpen(true); }}>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span>Last activity:</span>
-                      </span>
-                      <span className="font-medium text-foreground">{deal.lastActivity}</span>
-                    </button>
-                    <div className="flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-muted/40">
-                      <span className="flex items-center gap-1">
-                        <Tag className="h-4 w-4 text-muted-foreground" />
-                        <span>Type:</span>
-                      </span>
-                      <span className="font-medium text-foreground">{deal.type}</span>
-                    </div>
-                    <div className="flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-muted/40">
-                      <span className="flex items-center gap-1">
-                        <ShieldAlert className="h-4 w-4 text-muted-foreground"/>
-                        <span>Risk:</span>
-                      </span>
-                      <span className={`font-medium ${getRiskClasses(deal.riskLevel).text}`}>{deal.riskLevel}</span>
-                    </div>
-
-                    <div className="flex items-center justify-end justify-self-end">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4 text-muted-foreground" />
-                            <span className="sr-only">Open actions</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-white">
-                          <DropdownMenuItem>
-                            <Pencil className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          {deal.probability < 60 && (
-                            <DropdownMenuItem className="text-destructive">
-                              <AlertTriangle className="h-4 w-4 mr-2" />
-                              Escalate
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem className="text-destructive" onClick={() => openInfo('Behavior simulation: Open confirmation popup')}>
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                </div>
+                
                 {/* Deal Header */}
 
                 <div className="flex items-start justify-between mb-1">
@@ -784,7 +748,7 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
-                              className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-red-600 text-white ring-2 ring-red-300 shadow-md animate-pulse"
+                              className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-red-600 text-white ring-2 ring-red-300 shadow-md animate-pulse transform scale-[0.7] origin-center"
                               onClick={() => { setSelectedDeal(deal); setOrgChartDialogOpen(true); }}
                             >
                               <Phone className="h-3.5 w-3.5" />
@@ -796,11 +760,13 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                     </div>
                     
                   </div>
-                  <button className="flex items-center gap-2 cursor-pointer font-semibold" onClick={() => { setSelectedDeal(deal); setDealProgressDialogOpen(true); }}>
-                    {getConfidenceIcon(deal.probability)}
-                    <span className={`text-${getConfidenceColor(deal.probability)}`}>{deal.probability}%</span>
-                    <span className="text-muted-foreground">Win Rate</span>
-                  </button>
+                  <div className="flex flex-col items-end gap-1">
+                    <button className="group flex items-center gap-2 cursor-pointer rounded px-1 transition-colors hover:bg-muted/40" onClick={() => { setSelectedDeal(deal); setDealProgressDialogOpen(true); }}>
+                      {getConfidenceIcon(deal.probability)}
+                      <span className={`${getConfidenceStyle(deal.probability).cls ?? ''} group-hover:opacity-90`} style={getConfidenceStyle(deal.probability).style}>{deal.probability}%</span>
+                      <span className="text-sm text-muted-foreground font-normal group-hover:text-primary">Win Rate</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between mb-1">
@@ -810,37 +776,80 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                       <span className="text-muted-foreground">{formatAmount(deal.value)}</span>
                     </span>
                     <span className="flex items-center gap-1">
-                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <Tag className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">{deal.type}</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <User className="h-4 w-4 text-muted-foreground" />
                       {deal.owner}
                     </span>
+                    <button
+                      className="group flex items-center gap-1 px-1 rounded transition-colors hover:bg-muted/40 text-muted-foreground"
+                      onClick={() => { setSelectedDeal(deal); setOrgChartDialogOpen(true); }}
+                    >
+                      <Users className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                      <span className="group-hover:text-primary">Stakeholders: {deal.stakeholders}</span>
+                    </button>
                     <span className="flex items-center gap-1">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       Close: {formatDate(deal.closeDate)}
                     </span>
                   </div>
-                  
+                  <div>
+                    <Badge className={`${riskBadgeClasses(riskFromProbability(deal.probability))} transition-colors cursor-default text-xs capitalize`}>
+                      {riskFromProbability(deal.probability)} risk
+                    </Badge>
+                  </div>
                 </div>
 
                 
 
                 <div className="mt-4 space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div onClick={() => openInfo('Behavior simulation: Task popup opens here')} className="group cursor-pointer">
+                  <div className="space-y-4">
+                    <div className="group cursor-pointer" onClick={() => openInfo('Behavior simulation: A user should be taken to the recommended action points in meeting intelligence')}>
                       <h4 className="font-medium text-foreground mb-2">Next Step</h4>
-                      <p className="text-sm text-muted-foreground group-hover:text-primary">{deal.nextStep}</p>
+                      <p className="text-sm text-muted-foreground group-hover:text-primary">{deal.nextStep} | {formatDate(deal.nextStepDate)}</p>
                     </div>
+                    <div className="group cursor-pointer" onClick={() => { setActivitiesForDeal(buildActivities(deal)); setActivitiesDialogOpen(true); }}>
+                      <h4 className="font-medium text-foreground mb-2">Last Activity</h4>
+                      <p className="text-sm text-muted-foreground group-hover:text-primary">{getLatestActivity(deal).summary} | {formatDate(getLatestActivity(deal).date)}</p>
+                    </div>
+                  </div>
                     {deal.blockers.length > 0 && (
                       <div>
-                        <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
-                          Key Blockers
-                        </h4>
+                        <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">Key Blockers</h4>
                         <div className="space-y-1">
-                          {deal.blockers.map((blocker, index) => (
-                            <div key={index} className="group flex items-center gap-2 cursor-pointer" onClick={() => openInfo('Behavior simulation: Navigate to Meeting Intelligence page/popup to show blockers')}>
-                              <XCircle className="h-3 w-3 text-destructive" />
-                              <span className="text-sm text-muted-foreground group-hover:text-primary">{blocker}</span>
-                            </div>
-                          ))}
+                          {deal.blockers.map((blocker, index) => {
+                            const stakeholders = deal.stakeholderDetails ?? [];
+                            const person = stakeholders.length > 0 ? stakeholders[index % stakeholders.length] : undefined;
+                            return (
+                              <div key={index} className="flex items-center gap-2">
+                                <button
+                                  className="group flex items-center gap-2 cursor-pointer"
+                                  onClick={() => openInfo('Behavior simulation: Navigate to Meeting Intelligence page/popup to show blockers')}
+                                >
+                                  <XCircle className="h-3 w-3 text-destructive" />
+                                  <span className="text-sm text-muted-foreground group-hover:text-primary">{blocker}</span>
+                                </button>
+                                {person && (
+                                  <>
+                                    <span className="text-xs text-muted-foreground">•</span>
+                                    <button
+                                      className="text-sm text-muted-foreground hover:text-primary underline"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedStakeholder({ ...enrichStakeholder(person), company: deal.company });
+                                        setStakeholderDialogOpen(true);
+                                      }}
+                                    >
+                                      {person.name}
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
