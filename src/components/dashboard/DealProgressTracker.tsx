@@ -796,17 +796,18 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                     </div>
                     
                   </div>
-                  <div className="flex items-center gap-2">
+                  <button className="flex items-center gap-2 cursor-pointer font-semibold" onClick={() => { setSelectedDeal(deal); setDealProgressDialogOpen(true); }}>
                     {getConfidenceIcon(deal.probability)}
-                    <span className={`font-semibold text-${getConfidenceColor(deal.probability)}`}>{deal.probability}% Win Rate</span>
-                  </div>
+                    <span className={`text-${getConfidenceColor(deal.probability)}`}>{deal.probability}%</span>
+                    <span className="text-muted-foreground">Win Rate</span>
+                  </button>
                 </div>
 
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-semibold text-foreground">{formatAmount(deal.value)}</span>
+                      <span className="text-muted-foreground">{formatAmount(deal.value)}</span>
                     </span>
                     <span className="flex items-center gap-1">
                       <Users className="h-4 w-4 text-muted-foreground" />
@@ -817,10 +818,7 @@ const DealProgressTracker: React.FC<DealProgressTrackerProps> = ({ period, team,
                       Close: {formatDate(deal.closeDate)}
                     </span>
                   </div>
-                  <button className="flex items-center gap-2 cursor-pointer group" onClick={() => { setSelectedDeal(deal); setDealProgressDialogOpen(true); }}>
-                    <Progress value={deal.progress} className="h-1 w-80" />
-                    <span className="text-xs font-semibold text-foreground group-hover:text-primary">{deal.progress}%</span>
-                  </button>
+                  
                 </div>
 
                 
